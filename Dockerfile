@@ -6,9 +6,10 @@ ARG RAV1E_VERSION=0.5.1
 ARG RAV1E_URL="https://github.com/xiph/rav1e/archive/v$RAV1E_VERSION.tar.gz"
 ARG RAV1E_SHA256=7b3060e8305e47f10b79f3a3b3b6adc3a56d7a58b2cb14e86951cc28e1b089fd
 
-# bump: alpine /FROM alpine:([\d.]+)/ docker:alpine|^3
-# bump: alpine link "Release notes" https://alpinelinux.org/posts/Alpine-$LATEST-released.html
-FROM alpine:3.16.2 AS base
+# Must be specified
+ARG ALPINE_VERSION
+
+FROM alpine:${ALPINE_VERSION} AS base
 
 FROM base AS download
 ARG RAV1E_URL
@@ -28,17 +29,30 @@ RUN \
 FROM base AS build
 COPY --from=download /tmp/rav1e/ /tmp/rav1e/
 WORKDIR /tmp/rav1e
+ARG ALPINE_VERSION
 # Fails on fetch without CARGO_NET_GIT_FETCH_WITH_CLI=true and git installed
 ENV CARGO_NET_GIT_FETCH_WITH_CLI=true
 RUN \
+  case ${ALPINE_VERSION} in \
+    edge) \
+      apk_pkgs="cargo-c" \
+    ;; \
+  esac && \
   apk add --no-cache --virtual build \
-    rust cargo git pkgconf openssl-dev nasm && \
-  # debug builds a bit faster and we don't care about runtime speed
-  cargo install --debug --version 0.9.5 cargo-c && \
+    rust cargo git pkgconf openssl-dev nasm ${apk_pkgs} && \
+  if [ "${ALPINE_VERSION}" != "edge" ]; then \
+    # debug builds a bit faster and we don't care about runtime speed
+    cargo install --debug --version 0.9.5 cargo-c; \
+  fi && \
   cargo cinstall --release && \
   # cargo-c/alpine rustc results in Libs.private depend on gcc_s
   # https://gitlab.alpinelinux.org/alpine/aports/-/issues/11806
   sed -i 's/-lgcc_s//' /usr/local/lib/pkgconfig/rav1e.pc && \
+  # Sanity tests
+  pkg-config --exists --modversion --path rav1e && \
+  ar -t /usr/local/lib/librav1e.a && \
+  readelf -h /usr/local/lib/librav1e.a && \
+  # Cleanup
   apk del build
 
 FROM scratch
