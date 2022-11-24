@@ -33,21 +33,11 @@ ARG ALPINE_VERSION
 # Fails on fetch without CARGO_NET_GIT_FETCH_WITH_CLI=true and git installed
 ENV CARGO_NET_GIT_FETCH_WITH_CLI=true
 RUN \
-  case ${ALPINE_VERSION} in \
-    edge) \
-      apk_pkgs="cargo-c" \
-    ;; \
-  esac && \
   apk add --no-cache --virtual build \
-    rust cargo git pkgconf openssl-dev nasm ${apk_pkgs} && \
-  if [ "${ALPINE_VERSION}" != "edge" ]; then \
-    # debug builds a bit faster and we don't care about runtime speed
-    cargo install --debug --version 0.9.5 cargo-c; \
-  fi && \
-  cargo cinstall --release && \
-  # cargo-c/alpine rustc results in Libs.private depend on gcc_s
+    rust cargo git pkgconf openssl-dev nasm cargo-c && \
+  # RUSTFLAGS need to fix gcc_s
   # https://gitlab.alpinelinux.org/alpine/aports/-/issues/11806
-  sed -i 's/-lgcc_s//' /usr/local/lib/pkgconfig/rav1e.pc && \
+  RUSTFLAGS="-C target-feature=+crt-static" cargo cinstall --release && \
   # Sanity tests
   pkg-config --exists --modversion --path rav1e && \
   ar -t /usr/local/lib/librav1e.a && \
