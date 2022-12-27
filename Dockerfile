@@ -3,9 +3,9 @@
 # bump: rav1e /RAV1E_VERSION=([\d.]+)/ https://github.com/xiph/rav1e.git|/\d+\./|*
 # bump: rav1e after ./hashupdate Dockerfile RAV1E $LATEST
 # bump: rav1e link "Release notes" https://github.com/xiph/rav1e/releases/tag/v$LATEST
-ARG RAV1E_VERSION=0.5.1
+ARG RAV1E_VERSION=0.6.2
 ARG RAV1E_URL="https://github.com/xiph/rav1e/archive/v$RAV1E_VERSION.tar.gz"
-ARG RAV1E_SHA256=7b3060e8305e47f10b79f3a3b3b6adc3a56d7a58b2cb14e86951cc28e1b089fd
+ARG RAV1E_SHA256=8fe8d80bc80a05ee33113c0ee19779d9c57189e5434c8e1da8f67832461aa089
 
 # Must be specified
 ARG ALPINE_VERSION
